@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#define MAX_FILES 100
 #define BUFSZ 501
 
 void usage(int argc, char **argv) {
@@ -41,6 +42,9 @@ int main(int argc, char **argv) {
     };
 
     int close_server = 0;
+    char filenames[MAX_FILES][BUFSZ]; // Array que armazena os arquivos
+    int file_count = 0;
+
     while (1) {    
         if (0 != listen(s, 10)) {
             logexit("listen");
@@ -85,7 +89,21 @@ int main(int argc, char **argv) {
                 };
 
                 if (filename_length > 0) {
-                    printf("file %s received\n", filename);
+                    int file_exists = 0;
+                    for (int i = 0; i < file_count; i++) {
+                        if (strcmp(filename, filenames[i]) == 0) {
+                            file_exists = 1;
+                            break;
+                        };
+                    };
+
+                    if (file_exists) {
+                        printf("file %s overwritten\n", filename);
+                    } else {
+                        strcpy(filenames[file_count], filename);
+                        file_count++;
+                        printf("file %s received\n", filename);
+                    };
                 } else {
                     printf("error receiving file %s\n", filename);
                 };
@@ -102,6 +120,11 @@ int main(int argc, char **argv) {
         };
 
         if (close_server == 1) break;
+    };
+    
+    printf("file list:\n");
+    for (int i = 0; i < file_count; i++) {
+        printf("%s\n", filenames[i]);
     };
 
     exit(EXIT_SUCCESS);
