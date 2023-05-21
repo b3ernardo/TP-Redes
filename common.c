@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <dirent.h>
+#define BUFSZ 501
 
 void logexit(const char *msg) {
     perror(msg);
@@ -110,4 +112,73 @@ int server_sockaddr_init(const char *proto, const char *portstr, struct sockaddr
     } else {
         return -1;
     };
+};
+
+char* read_file(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("error opening file %s\n", filename);
+        return NULL;
+    };
+
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char* content = (char*)malloc(fileSize + 1);
+    if (content == NULL) {
+        printf("error allocating memory\n");
+        fclose(file);
+        return NULL;
+    };
+
+    size_t bytesRead = fread(content, sizeof(char), fileSize, file);
+    if (bytesRead != (size_t)fileSize) {
+        printf("error reading file %s\n", filename);
+        fclose(file);
+        free(content);
+        return NULL;
+    };
+
+    size_t filteredSize = 0;
+    for (size_t i = 0; i < bytesRead; i++) {
+        char c = content[i];
+        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == ' ' || c == '\n') {
+            content[filteredSize++] = c;
+        };
+    };
+    content[filteredSize] = '\0';
+
+    fclose(file);
+
+    return content;
+};
+
+char* extract_filename (const char* content) {
+    const char* newline_pos = strchr(content, '\n');
+    size_t length = newline_pos - content;
+    char* filename = (char *)malloc(length + 1);    
+    strncpy(filename, content, length);
+    filename[length] = '\0';
+
+    return filename;
+};
+
+void remove_directory(const char* path) {
+    DIR* dir = opendir(path);
+    struct dirent* entry;
+
+    if (dir) {
+        while ((entry = readdir(dir)) != NULL) {
+            char file_path[BUFSZ];
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+                continue;
+            }
+            snprintf(file_path, BUFSZ, "%s/%s", path, entry->d_name);
+            remove(file_path);
+        }
+        closedir(dir);
+    };
+
+    remove(path);
 };

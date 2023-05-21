@@ -40,8 +40,8 @@ int main(int argc, char **argv) {
     addrtostr(addr, addrstr, BUFSZ);
     printf("connected to %s\n", addrstr);
 
-    FILE *file = NULL;
     char filename[BUFSZ] = "";
+    FILE *file = NULL;
 
     while (1) {
         printf("> ");
@@ -68,22 +68,21 @@ int main(int argc, char **argv) {
                 printf("%s selected\n", buf);
             };
         } else if (0 == strncmp(input, "send file", strlen("send file")) && strlen(input) - 1 == strlen("send file")) {
+            file = fopen(filename, "rb");
             if (file == NULL) {
                 printf("no file selected!\n");
                 continue;
             };
-
-            size_t filename_length = strlen(filename);
-            ssize_t sent = send(s, filename, filename_length, 0);
-            if (sent == -1) {
-                logexit("send");
-            };
             
-            char recv_buf[BUFSZ];
-            memset(recv_buf, 0, BUFSZ);
-            ssize_t count = recv(s, recv_buf, BUFSZ - 1, 0);
-            if (count == -1) {
-                logexit("recv");
+            char* file_content = read_file(filename);
+            if (file_content != NULL) {
+                char buf[BUFSZ * 2];
+                sprintf(buf, "%s\n%s", filename, file_content);
+                ssize_t sent = send(s, buf, strlen(buf), 0);
+                if (sent == -1) {
+                    logexit("send");
+                };
+                free(file_content);
             };
         } else if (0 == strncmp(input, "exit", strlen("exit")) && strlen(input) - 1 == strlen("exit")) {
             ssize_t sent = send(s, "exit", strlen("exit"), 0);

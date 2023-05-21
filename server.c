@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #define MAX_FILES 100
 #define BUFSZ 501
@@ -42,9 +43,10 @@ int main(int argc, char **argv) {
     };
 
     int close_server = 0;
-    char filenames[MAX_FILES][BUFSZ]; // Array que armazena os arquivos
+    char contents[MAX_FILES][BUFSZ]; // Array que armazena os arquivos
     int file_count = 0;
 
+    remove_directory("server_files");
     while (1) {    
         if (0 != listen(s, 10)) {
             logexit("listen");
@@ -66,46 +68,54 @@ int main(int argc, char **argv) {
                 char caddrstr[BUFSZ];
                 addrtostr(caddr, caddrstr, BUFSZ);
 
-                char filename[BUFSZ];
-                memset(filename, 0, BUFSZ);
-                ssize_t filename_length = recv(csock, filename, BUFSZ - 1, 0);
-
-                if (0 == strncmp(filename, "exit", 4)) {
-                    ssize_t sent = send(csock, "connection closed", strlen("connection closed"), 0);
-                    if (sent == -1) {
-                        logexit("exit");
-                    };
+                char content[BUFSZ];
+                memset(content, 0, BUFSZ);
+                ssize_t content_length = recv(csock, content, BUFSZ - 1, 0);
+                
+                if (0 == strncmp(content, "exit", 4)) {
                     close_server = 1;
                     printf("connection closed\n");
                     break;
                 };
 
-                if (0 == strncmp(filename, "unknown", strlen("unknown"))) {
-                    ssize_t sent = send(csock, "connection closed", strlen("connection closed"), 0);
-                    if (sent == -1) {
-                        logexit("unknown");
-                    };
+                if (0 == strncmp(content, "unknown", strlen("unknown"))) {
                     break;
                 };
 
-                if (filename_length > 0) {
+                if (content_length > 0) {
+                    char* filename = extract_filename(content);
+                    const char* folder = "server_files";
+                    mkdir(folder, 0700);
+
+                    char filepath[BUFSZ];
+                    snprintf(filepath, BUFSZ, "%s/%s", folder, filename);
+
+                    FILE* file = fopen(filepath, "wb");
+                    ssize_t bytes_written = fwrite(content, 1, content_length, file);
+                    if (bytes_written < content_length) {
+                        // printf("error writing to file %s\n", filepath);
+                    } else {
+                        // printf("file %s created and written\n", filepath);
+                    };
+                    fclose(file);
+                    
                     int file_exists = 0;
                     for (int i = 0; i < file_count; i++) {
-                        if (strcmp(filename, filenames[i]) == 0) {
+                        if (strcmp(content, contents[i]) == 0) {
                             file_exists = 1;
                             break;
                         };
                     };
 
                     if (file_exists) {
-                        printf("file %s overwritten\n", filename);
+                        printf("file %s overwritten\n", extract_filename(content));
                     } else {
-                        strcpy(filenames[file_count], filename);
+                        strcpy(contents[file_count], content);
                         file_count++;
-                        printf("file %s received\n", filename);
+                        printf("file %s received\n", extract_filename(content));
                     };
                 } else {
-                    printf("error receiving file %s\n", filename);
+                    printf("error receiving file %s\n", extract_filename(content));
                 };
                 
                 ssize_t sent = send(csock, "message received", strlen("message received"), 0);
@@ -122,10 +132,5 @@ int main(int argc, char **argv) {
         if (close_server == 1) break;
     };
     
-    printf("file list:\n");
-    for (int i = 0; i < file_count; i++) {
-        printf("%s\n", filenames[i]);
-    };
-
     exit(EXIT_SUCCESS);
 };
