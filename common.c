@@ -1,39 +1,21 @@
-#include <inttypes.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
-#include <arpa/inet.h>
+#include <inttypes.h>
 #include <dirent.h>
+#include <arpa/inet.h>
+
 #define BUFSZ 501
 
-void logexit(const char *msg) {
+void logexit (const char *msg) {
     perror(msg);
     exit(EXIT_FAILURE);
 };
 
-int extension_validator (char extension[5]) {
-    const char *valid_extensions[] = {".txt", ".c", ".cpp", ".py", ".tex", ".java"};
-
-    for (int i = 0; i < sizeof(valid_extensions) / sizeof(valid_extensions[0]); i++) {
-        if (0 == strcmp(extension, valid_extensions[i])) {
-            return 1;
-            break;
-        };
-    };
-    return 0;        
-};
-
-int addrparse(const char *addrstr, const char *portstr, struct sockaddr_storage *storage) {
-    if (addrstr == NULL || portstr == NULL) {
-        return -1;
-    };
-
+int addrparse (const char *addrstr, const char *portstr, struct sockaddr_storage *storage) {
+    if (addrstr == NULL || portstr == NULL) return -1;
     uint16_t port = (uint16_t)atoi(portstr);
-
-    if (port == 0) {
-        return -1;
-    };
-
+    if (port == 0) return -1;
     port = htons(port);
 
     struct in_addr inaddr4;
@@ -57,7 +39,7 @@ int addrparse(const char *addrstr, const char *portstr, struct sockaddr_storage 
     return -1;
 };
 
-void addrtostr(const struct sockaddr *addr, char *str, size_t strsize) {
+void addrtostr (const struct sockaddr *addr, char *str, size_t strsize) {
     int version;
     char addrstr[INET6_ADDRSTRLEN + 1] = "";
     uint16_t port;
@@ -65,35 +47,23 @@ void addrtostr(const struct sockaddr *addr, char *str, size_t strsize) {
     if (addr->sa_family == AF_INET) {
         version = 4;
         struct sockaddr_in *addr4 = (struct sockaddr_in *)addr;
-
-        if (!inet_ntop(AF_INET, &(addr4->sin_addr), addrstr, INET6_ADDRSTRLEN + 1)) {
-            logexit("ntop");
-        };
-
+        if (!inet_ntop(AF_INET, &(addr4->sin_addr), addrstr, INET6_ADDRSTRLEN + 1)) logexit("ntop");
         port = ntohs(addr4->sin_port);
     } else if (addr->sa_family == AF_INET6) {
         version = 6;
         struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)addr;
-
-        if (!inet_ntop(AF_INET6, &(addr6->sin6_addr), addrstr, INET6_ADDRSTRLEN + 1)) {
-            logexit("ntop");
-        };
-
+        if (!inet_ntop(AF_INET6, &(addr6->sin6_addr), addrstr, INET6_ADDRSTRLEN + 1)) logexit("ntop");
         port = ntohs(addr6->sin6_port);
     } else {
         logexit("unknown protocol family");
     };
 
-    if (str) {
-        snprintf(str, strsize, "IPv%d %s %hu", version, addrstr, port);
-    };
+    if (str) snprintf(str, strsize, "IPv%d %s %hu", version, addrstr, port);
 };
 
-int server_sockaddr_init(const char *proto, const char *portstr, struct sockaddr_storage *storage) {
+int server_sockaddr_init (const char *proto, const char *portstr, struct sockaddr_storage *storage) {
     uint16_t port = (uint16_t)atoi(portstr);
-    if (port == 0) {
-        return -1;
-    };
+    if (port == 0) return -1;
     port = htons(port);
 
     memset(storage, 0, sizeof(*storage));
@@ -114,7 +84,18 @@ int server_sockaddr_init(const char *proto, const char *portstr, struct sockaddr
     };
 };
 
-char* read_file(const char* filename) {
+int extension_validator (char extension[6]) {
+    const char *valid_extensions[] = {".txt", ".c", ".cpp", ".py", ".tex", ".java"};
+    for (int i = 0; i < sizeof(valid_extensions) / sizeof(valid_extensions[0]); i++) {
+        if (0 == strcmp(extension, valid_extensions[i])) {
+            return 1;
+            break;
+        };
+    };
+    return 0;        
+};
+
+char* read_file (const char* filename) {
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
         printf("error opening file %s\n", filename);
@@ -143,7 +124,13 @@ char* read_file(const char* filename) {
     size_t filteredSize = 0;
     for (size_t i = 0; i < bytesRead; i++) {
         char c = content[i];
-        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == ' ' || c == '\n') {
+        if (
+            (c >= 'A' && c <= 'Z') ||
+            (c >= 'a' && c <= 'z') ||
+            (c >= '0' && c <= '9') ||
+            (c == ' ' ) ||
+            (c == '\n')
+        ) {
             content[filteredSize++] = c;
         };
     };
@@ -164,16 +151,14 @@ char* extract_filename (const char* content) {
     return filename;
 };
 
-void remove_directory(const char* path) {
+void remove_directory (const char* path) {
     DIR* dir = opendir(path);
     struct dirent* entry;
 
     if (dir) {
         while ((entry = readdir(dir)) != NULL) {
             char file_path[BUFSZ];
-            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
-                continue;
-            }
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
             snprintf(file_path, BUFSZ, "%s/%s", path, entry->d_name);
             remove(file_path);
         }

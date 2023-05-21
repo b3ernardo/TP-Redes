@@ -1,10 +1,11 @@
 #include "common.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <arpa/inet.h>
 
 #define BUFSZ 501
@@ -16,25 +17,16 @@ void usage(int argc, char **argv) {
 };
 
 int main(int argc, char **argv) {
-    if (argc < 3) {
-        usage(argc, argv);
-    };
+    if (argc < 3) usage(argc, argv);
 
     struct sockaddr_storage storage;
-    if (0 != addrparse(argv[1], argv[2], &storage)) {
-        usage(argc, argv);
-    };
+    if (0 != addrparse(argv[1], argv[2], &storage)) usage(argc, argv);
 
-    int s;
-    s = socket(storage.ss_family, SOCK_STREAM, 0);
-    if (s == -1) {
-        logexit("socket");
-    };
+    int s = socket(storage.ss_family, SOCK_STREAM, 0);
+    if (s == -1) logexit("socket");
 
     struct sockaddr *addr = (struct sockaddr *)(&storage);
-    if (0 != connect(s, addr, sizeof(storage))) {
-        logexit("connect");
-    };
+    if (0 != connect(s, addr, sizeof(storage))) logexit("connect");
 
     char addrstr[BUFSZ];
     addrtostr(addr, addrstr, BUFSZ);
@@ -42,16 +34,13 @@ int main(int argc, char **argv) {
 
     char filename[BUFSZ] = "";
     FILE *file = NULL;
-
     while (1) {
         printf("> ");
         char input[BUFSZ];
         fgets(input, BUFSZ - 1, stdin);
                 
         if (0 == strncmp(input, "select file ", strlen("select file "))) {
-            if (file != NULL) {
-                fclose(file);
-            };           
+            if (file != NULL) fclose(file);
             
             char buf[BUFSZ] = "";
             sscanf(input, "select file %[^\n]", buf);
@@ -79,30 +68,21 @@ int main(int argc, char **argv) {
                 char buf[BUFSZ * 2];
                 sprintf(buf, "%s\n%s", filename, file_content);
                 ssize_t sent = send(s, buf, strlen(buf), 0);
-                if (sent == -1) {
-                    logexit("send");
-                };
+                if (sent == -1) logexit("send");
                 free(file_content);
             };
         } else if (0 == strncmp(input, "exit", strlen("exit")) && strlen(input) - 1 == strlen("exit")) {
             ssize_t sent = send(s, "exit", strlen("exit"), 0);
-            if (sent == -1) {
-                logexit("send");
-            }
+            if (sent == -1) logexit("send");
             break;
         } else {
             ssize_t sent = send(s, "unknown", strlen("unknown"), 0);
-            if (sent == -1) {
-                logexit("send");
-            };
+            if (sent == -1) logexit("send");
             break;
         };
     };
     
-    if (file != NULL) {
-        fclose(file);
-    };
-
+    if (file != NULL) fclose(file);
     close(s);
     exit(EXIT_SUCCESS);
 }; 

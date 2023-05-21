@@ -1,6 +1,7 @@
 #include "common.h"
-#include <stdio.h>
+
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -17,40 +18,27 @@ void usage(int argc, char **argv) {
 };
 
 int main(int argc, char **argv) {
-    if (argc < 3) {
-        usage(argc, argv);
-    };
+    if (argc < 3) usage(argc, argv);
 
     struct sockaddr_storage storage;
-    if (0 != server_sockaddr_init(argv[1], argv[2], &storage)) {
-        usage(argc, argv);
-    };
+    if (0 != server_sockaddr_init(argv[1], argv[2], &storage)) usage(argc, argv);
 
-    int s;
-    s = socket(storage.ss_family, SOCK_STREAM, 0);
-    if (s == -1) {
-        logexit("socket");
-    };
+    int s = socket(storage.ss_family, SOCK_STREAM, 0);
+    if (s == -1) logexit("socket");
 
     int enable = 1;
-    if (0 != setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int))) {
-        logexit("setsockopt");
-    };
+    if (0 != setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int))) logexit("setsockopt");
 
     struct sockaddr *addr = (struct sockaddr *)(&storage);
-    if (0 != bind(s, addr, sizeof(storage))) {
-        logexit("bind");
-    };
+    if (0 != bind(s, addr, sizeof(storage))) logexit("bind");
 
+    char file_list[MAX_FILES][BUFSZ];
     int close_server = 0;
-    char contents[MAX_FILES][BUFSZ]; // Array que armazena os arquivos
-    int file_count = 0;
+    int file_counter = 0;
 
     remove_directory("server_files");
     while (1) {    
-        if (0 != listen(s, 10)) {
-            logexit("listen");
-        };
+        if (0 != listen(s, 10)) logexit("listen");
 
         char addrstr[BUFSZ];
         addrtostr(addr, addrstr, BUFSZ);
@@ -64,7 +52,7 @@ int main(int argc, char **argv) {
         if (csock == -1) {
             logexit("accept");
         } else { 
-            while(1) {
+            while (1) {
                 char caddrstr[BUFSZ];
                 addrtostr(caddr, caddrstr, BUFSZ);
 
@@ -78,9 +66,7 @@ int main(int argc, char **argv) {
                     break;
                 };
 
-                if (0 == strncmp(content, "unknown", strlen("unknown"))) {
-                    break;
-                };
+                if (0 == strncmp(content, "unknown", strlen("unknown"))) break;
 
                 if (content_length > 0) {
                     char* filename = extract_filename(content);
@@ -92,16 +78,12 @@ int main(int argc, char **argv) {
 
                     FILE* file = fopen(filepath, "wb");
                     ssize_t bytes_written = fwrite(content, 1, content_length, file);
-                    if (bytes_written < content_length) {
-                        // printf("error writing to file %s\n", filepath);
-                    } else {
-                        // printf("file %s created and written\n", filepath);
-                    };
+                    if (bytes_written < content_length) logexit("file");
                     fclose(file);
                     
                     int file_exists = 0;
-                    for (int i = 0; i < file_count; i++) {
-                        if (strcmp(content, contents[i]) == 0) {
+                    for (int i = 0; i < file_counter; i++) {
+                        if (strcmp(content, file_list[i]) == 0) {
                             file_exists = 1;
                             break;
                         };
@@ -110,8 +92,8 @@ int main(int argc, char **argv) {
                     if (file_exists) {
                         printf("file %s overwritten\n", extract_filename(content));
                     } else {
-                        strcpy(contents[file_count], content);
-                        file_count++;
+                        strcpy(file_list[file_counter], content);
+                        file_counter++;
                         printf("file %s received\n", extract_filename(content));
                     };
                 } else {
@@ -119,18 +101,11 @@ int main(int argc, char **argv) {
                 };
                 
                 ssize_t sent = send(csock, "message received", strlen("message received"), 0);
-                if (sent == -1) {
-                    // printf("error sending confirmation\n");
-                } else {
-                    // printf("confirmation sent to the client\n");
-                };
+                if (sent == -1) logexit("send");
             };
-
             close(csock);
         };
-
         if (close_server == 1) break;
     };
-    
     exit(EXIT_SUCCESS);
 };
