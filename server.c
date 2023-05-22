@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
     int close_server = 0;
     int file_counter = 0;
 
-    remove_directory("server_files");
+    delete_dir("server_files");
     while (1) {    
         if (0 != listen(s, 10)) logexit("listen");
 
@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
                 if (0 == strncmp(content, "unknown", strlen("unknown"))) break;
 
                 if (content_length > 0) {
-                    char* filename = extract_filename(content);
+                    char* filename = get_filename(content);
                     const char* folder = "server_files";
                     mkdir(folder, 0700);
 
@@ -90,14 +90,14 @@ int main(int argc, char **argv) {
                     };
 
                     if (file_exists) {
-                        printf("file %s overwritten\n", extract_filename(content));
+                        printf("file %s overwritten\n", get_filename(content));
                     } else {
                         strcpy(file_list[file_counter], content);
                         file_counter++;
-                        printf("file %s received\n", extract_filename(content));
+                        printf("file %s received\n", get_filename(content));
                     };
                 } else {
-                    printf("error receiving file %s\n", extract_filename(content));
+                    printf("error receiving file %s\n", get_filename(content));
                 };
                 
                 ssize_t sent = send(csock, "message received", strlen("message received"), 0);

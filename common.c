@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 
 #define BUFSZ 501
+#define NUM_EXTENSIONS 6
 
 void logexit (const char *msg) {
     perror(msg);
@@ -84,16 +85,23 @@ int server_sockaddr_init (const char *proto, const char *portstr, struct sockadd
     };
 };
 
-int extension_validator (char extension[6]) {
-    const char *valid_extensions[] = {".txt", ".c", ".cpp", ".py", ".tex", ".java"};
-    for (int i = 0; i < sizeof(valid_extensions) / sizeof(valid_extensions[0]); i++) {
-        if (0 == strcmp(extension, valid_extensions[i])) {
-            return 1;
-            break;
-        };
+int extension_validator (char extension[NUM_EXTENSIONS]) {
+    const char *valid_extensions[NUM_EXTENSIONS] = {
+        ".c", 
+        ".cpp", 
+        ".txt", 
+        ".tex", 
+        ".py", 
+        ".java"
     };
-    return 0;        
-};
+
+    int i = 0;
+    while (i < sizeof(valid_extensions) / sizeof(valid_extensions[0])) {
+        if (0 == strcmp(extension, valid_extensions[i])) return 1;
+        i++;
+    };
+    return 0;
+}
 
 char* read_file (const char* filename) {
     FILE* file = fopen(filename, "r");
@@ -141,20 +149,18 @@ char* read_file (const char* filename) {
     return content;
 };
 
-char* extract_filename (const char* content) {
-    const char* newline_pos = strchr(content, '\n');
-    size_t length = newline_pos - content;
-    char* filename = (char *)malloc(length + 1);    
-    strncpy(filename, content, length);
-    filename[length] = '\0';
-
+char* get_filename (const char* content) {
+    const char* break_line = strchr(content, '\n');
+    size_t file_length = (break_line - content) + 1;
+    char* filename = (char *)malloc(file_length);
+    strncpy(filename, content, file_length - 1);
+    filename[file_length - 1] = '\0';
     return filename;
 };
 
-void remove_directory (const char* path) {
+void delete_dir (const char* path) {
     DIR* dir = opendir(path);
     struct dirent* entry;
-
     if (dir) {
         while ((entry = readdir(dir)) != NULL) {
             char file_path[BUFSZ];
@@ -164,6 +170,5 @@ void remove_directory (const char* path) {
         }
         closedir(dir);
     };
-
     remove(path);
 };
