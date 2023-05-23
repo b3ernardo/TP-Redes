@@ -64,9 +64,16 @@ int main(int argc, char **argv) {
             };
             
             char* file_content = read_file(filename);
+            if (strlen(file_content) >= 500) {
+                ssize_t sent = send(s, "exit", strlen("exit"), 0);
+                if (sent == -1) logexit("send");
+                printf("file at limit size, please reduce it\n");
+                break;
+            };
+
             if (file_content != NULL) {
                 char buf[BUFSZ * 2];
-                sprintf(buf, "%s\n%s", filename, file_content);
+                sprintf(buf, "%s%s\\end", filename, file_content);
                 ssize_t sent = send(s, buf, strlen(buf), 0);
                 if (sent == -1) logexit("send");
                 free(file_content);

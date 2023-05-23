@@ -69,6 +69,12 @@ int main(int argc, char **argv) {
                 if (0 == strncmp(content, "unknown", strlen("unknown"))) break;
 
                 if (content_length > 0) {
+                    if (content_length >= 500) {
+                        close_server = 1;
+                        printf("file at limit size, please reduce it\n");
+                        send(csock, "terminate", strlen("terminate"), 0);
+                        break;
+                    };
                     char* filename = get_filename(content);
                     const char* folder = "server_files";
                     mkdir(folder, 0700);
