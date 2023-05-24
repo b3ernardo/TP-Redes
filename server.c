@@ -69,6 +69,7 @@ int main(int argc, char **argv) {
                 if (0 == strncmp(content, "unknown", strlen("unknown"))) break;
 
                 if (content_length > 0) {
+                    if (content_length >= 4 && strcmp(&content[content_length - 4], "\\end") == 0) content_length -= 4;
                     char* filename = get_filename(content);
                     const char* folder = "server_files";
                     mkdir(folder, 0700);

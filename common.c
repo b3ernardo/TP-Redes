@@ -87,12 +87,12 @@ int server_sockaddr_init (const char *proto, const char *portstr, struct sockadd
 
 int extension_validator (char extension[NUM_EXTENSIONS]) {
     const char *valid_extensions[NUM_EXTENSIONS] = {
+        ".java",
         ".cpp", 
-        ".c", 
         ".txt", 
         ".tex", 
-        ".py", 
-        ".java"
+        ".py",
+        ".c"
     };
 
     int i = 0;
@@ -143,12 +143,12 @@ char* read_file (const char* filename) {
 
 char* get_filename(const char* content) {
     const char *valid_extensions[NUM_EXTENSIONS] = {
-        ".cpp", 
-        ".c", 
+        ".java",
+        ".cpp",  
         ".txt", 
         ".tex", 
-        ".py", 
-        ".java"
+        ".py",
+        ".c",
     };
 
     const size_t num_extensions = sizeof(valid_extensions) / sizeof(valid_extensions[0]);
