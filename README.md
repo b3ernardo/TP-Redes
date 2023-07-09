@@ -15,7 +15,7 @@
   <p>./client 127.0.0.1 51511</p>
   
   <h3>Comandos disponíveis:</h3>
-  <p>select file [nome_do_arquivo]</p>
-  <p>send file</p>
-  <p>exit</p>
+  <p>select file [nome_do_arquivo] (seleciona o arquivo a ser enviado)</p>
+  <p>send file (envia o arquivo selecionado)</p>
+  <p>exit (fecha a conexão do cliente)</p>
 </div>
